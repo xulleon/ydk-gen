@@ -75,7 +75,7 @@ ydk::path::DataNodeImpl::DataNodeImpl(DataNode* parent, lyd_node* node, const st
 
 ydk::path::DataNodeImpl::~DataNodeImpl()
 {
-    if (!m_parent)
+    if (m_node && !m_parent)
     {
         lyd_free_withsiblings(m_node);
     }

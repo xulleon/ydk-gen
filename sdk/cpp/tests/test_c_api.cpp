@@ -44,7 +44,9 @@ TEST_CASE( "codec_encode"  )
 
     DataNodeCreate(state, runner, "ytypes/built-in-t/number8", "2");
 
-    string s { CodecEncode(state, c, runner, XML, 0)};
+    const char* encode_xml = CodecEncode(state, c, runner, XML, 0);
+    string s { encode_xml };
+    free((void*)encode_xml);
     REQUIRE(s == test_string);
 
     NetconfServiceProviderFree(provider);
@@ -66,7 +68,9 @@ TEST_CASE( "codec_decode"  )
 
     REQUIRE(runner!=NULL);
 
-    string s { CodecEncode(state, c, runner, XML, 0)};
+    const char* encode_xml = CodecEncode(state, c, runner, XML, 0);
+    string s { encode_xml };
+    free((void*)encode_xml);
     REQUIRE(s == test_string);
 
     NetconfServiceProviderFree(provider);
@@ -115,24 +119,24 @@ TEST_CASE( "rpc" )
 
     DataNode runner = RootSchemaNodeCreate(state, root_schema, "ydktest-sanity:runner");
 
-    DataNodeCreate(state, runner, "ytypes/built-in-t/number8", "2");
+    DataNode number8 = DataNodeCreate(state, runner, "ytypes/built-in-t/number8", "2");
     const char* create_xml = CodecEncode(state, c, runner, XML, 0);
 
     Rpc create_rpc = RootSchemaNodeRpc(state, root_schema, "ydk:create");
     DataNode input = RpcInput(state, create_rpc);
-    DataNodeCreate(state, input, "entity", create_xml);
-    RpcExecute(state, create_rpc, provider);
+    DataNode input_dn = DataNodeCreate(state, input, "entity", create_xml);
+    DataNode create_dn = RpcExecute(state, create_rpc, provider);
 
     Rpc read_rpc = RootSchemaNodeRpc(state, root_schema, "ydk:read");
     input = RpcInput(state, read_rpc);
     DataNode runner_filter = RootSchemaNodeCreate(state, root_schema, "ydktest-sanity:runner");
     const char* read_xml = CodecEncode(state, c, runner_filter, XML, 0);
 
-    DataNodeCreate(state, input, "filter", read_xml);
+    DataNode filter = DataNodeCreate(state, input, "filter", read_xml);
     DataNode read_data = RpcExecute(state, read_rpc, provider);
 
-    delete create_xml;
-    delete read_xml;
+    free ((void*)create_xml);
+    free ((void*)read_xml);
     NetconfServiceProviderFree(provider);
     RepositoryFree(repo);
     CodecFree(c);
