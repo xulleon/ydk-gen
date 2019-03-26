@@ -1082,6 +1082,9 @@ public:
     std::shared_ptr<DataNode> invoke(DataNode& rpc) const;
     std::vector<std::string> get_capabilities() const;
 
+    // This function is for YDK internal tests only
+    std::shared_ptr<path::DataNode> handle_action_rpc_output(const std::string & rpc_reply, path::DataNode& action_dn);
+
 private:
     std::vector<std::string> get_yang_1_1_capabilities() const;
     std::shared_ptr<DataNode> handle_crud_edit(
