@@ -73,8 +73,9 @@ const string PROTOCOL_SSH = "ssh";
 const string PROTOCOL_TCP = "tcp";
 
 static bool is_netconf_get_rpc(path::Rpc & rpc);
-static shared_ptr<path::DataNode> handle_netconf_get_output(const string & reply, path::RootSchemaNode & root_schema);
-
+static shared_ptr<path::DataNode> netconf_output_to_datanode(const string & data, path::RootSchemaNode & root_schema);
+static string get_netconf_output(const string & reply);
+static string extract_rpc_output(const string & reply);
 
 NetconfSession::NetconfSession(path::Repository & repo,
                                const string& address,
@@ -121,8 +122,7 @@ NetconfSession::NetconfSession(path::Repository& repo,
     initialize_client_with_key(address, username, private_key_path, public_key_path,
         port, timeout);
     initialize_repo(repo, on_demand);
-   YLOG_INFO("Connected to {} on port {} using SSH with timeout of {}",
-       address, port, timeout);
+    YLOG_INFO("Connected to {} on port {} using SSH with timeout of {}", address, port, timeout);
 }
 
 NetconfSession::NetconfSession(const string& address,
@@ -139,8 +139,7 @@ NetconfSession::NetconfSession(const string& address,
     auto caching_option = common_cache ? path::ModelCachingOption::COMMON : path::ModelCachingOption::PER_DEVICE;
     path::Repository repo(caching_option);
     initialize_repo(repo, on_demand);
-   YLOG_INFO("Connected to {} on port {} using SSH with timeout of {}",
-       address, port, timeout);
+    YLOG_INFO("Connected to {} on port {} using SSH with timeout of {}", address, port, timeout);
 }
 
 void NetconfSession::initialize_client_with_key(const string& address,
@@ -161,7 +160,7 @@ void NetconfSession::initialize_client(const string& address,
                                        const string& protocol,
                                        int timeout)
 {
-    if (protocol.compare(PROTOCOL_SSH) == 0)
+    if (protocol.compare(PROTOCOL_SSH) == 0 || protocol.empty())
     {
         client = make_shared<NetconfSSHClient>(username, password, address, port, timeout);
     }
@@ -247,7 +246,9 @@ shared_ptr<path::DataNode> NetconfSession::handle_crud_read(path::Rpc& ydk_rpc) 
 
     string netconf_payload = get_netconf_payload(input, "filter", filter_value);
 
-    return handle_netconf_get_output(execute_payload(netconf_payload), *root_schema);
+    auto data = get_netconf_output(execute_payload(netconf_payload));
+    if (data.empty()) return nullptr;
+    return netconf_output_to_datanode(data, *root_schema);
 }
 
 shared_ptr<path::DataNode> NetconfSession::handle_crud_edit(path::Rpc& ydk_rpc, path::Annotation annotation) const
@@ -282,13 +283,37 @@ shared_ptr<path::DataNode> NetconfSession::handle_netconf_operation(path::Rpc& y
 
     if (is_netconf_get_rpc(ydk_rpc))
     {
-        return handle_netconf_get_output(reply, *root_schema);
+        auto data = get_netconf_output(reply);
+        if (!data.empty())
+            return netconf_output_to_datanode(data, *root_schema);
     }
     else if (ydk_rpc.has_output_node())
     {
         return handle_rpc_output(reply, *root_schema, ydk_rpc.get_input_node());
     }
     return nullptr;
+}
+
+std::string NetconfSession::execute_netconf_operation(path::Rpc& ydk_rpc) const
+{
+    path::Codec codec_service{};
+    auto netconf_payload = codec_service.encode(ydk_rpc.get_input_node(), EncodingFormat::XML, true);
+    string payload{"<rpc xmlns=\"urn:ietf:params:xml:ns:netconf:base:1.0\">"};
+    netconf_payload = payload + netconf_payload + "</rpc>";
+
+    log_rpc_request(netconf_payload);
+
+    string reply = execute_payload(netconf_payload);
+
+    check_rpc_reply_for_error(reply);
+
+    if (is_netconf_get_rpc(ydk_rpc))
+    {
+        return get_netconf_output(reply);
+    }
+    else {
+        return extract_rpc_output(reply);
+    }
 }
 
 shared_ptr<path::DataNode> NetconfSession::invoke(path::DataNode& datanode) const
@@ -341,9 +366,7 @@ shared_ptr<path::DataNode> NetconfSession::invoke(path::Rpc& rpc) const
 string NetconfSession::execute_payload(const string & payload) const
 {
     string reply = client->execute_payload(payload);
-    YLOG_INFO("=============Reply payload received from device=============");
-    YLOG_INFO("\n{}", reply);
-    YLOG_INFO("\n");
+    YLOG_INFO("============= Received RPC from device =============\n{}", reply);
     return reply;
 }
 
@@ -353,7 +376,7 @@ vector<string> NetconfSession::get_yang_1_1_capabilities() const
     IetfCapabilitiesParser capabilities_parser{};
     string payload = get_caps_rpc_payload();
 
-    YLOG_INFO("=============Requesting YANG 1.1 capabilities=============");
+    YLOG_INFO("============= Requesting YANG 1.1 capabilities ===========");
     string reply = execute_payload(payload);
     return parser.parse_yang_1_1(reply);
 }
@@ -524,13 +547,10 @@ static shared_ptr<path::DataNode> handle_crud_edit_reply(string reply, NetconfCl
         //need to send the commit request
         string commit_payload = get_commit_rpc_payload();
 
-        YLOG_INFO( "=============Executing commit=============");
-        YLOG_INFO("\n{}", commit_payload);
+        YLOG_INFO("============= Executing commit ==============\n{}", commit_payload);
         reply = client.execute_payload(commit_payload);
 
-        YLOG_INFO("=============Reply payload received from device=============");
-        YLOG_INFO("\n{}", reply.c_str());
-        YLOG_INFO("\n");
+        YLOG_INFO("============= Reply from device =============\n{}", reply);
         if(reply.find("<ok/>") == string::npos)
         {
             YLOG_ERROR("RPC error occurred: {}", reply);
@@ -548,14 +568,13 @@ static bool is_netconf_get_rpc(path::Rpc & rpc)
             or rpc.get_schema_node().get_path() == "/ietf-netconf:get-config");
 }
 
-static shared_ptr<path::DataNode> handle_netconf_get_output(const string & reply, path::RootSchemaNode & root_schema)
+static std::string get_netconf_output(const string & reply)
 {
-    path::Codec codec_service{};
     auto empty_data = reply.find("<data/>");
     if(empty_data != string::npos)
     {
         YLOG_INFO( "Found empty data tag");
-        return nullptr;
+        return {};
     }
 
     auto data_start = reply.find("<data>");
@@ -572,8 +591,12 @@ static shared_ptr<path::DataNode> handle_netconf_get_output(const string & reply
         throw(YError{"No end data tag found"});
     }
 
-    string data = reply.substr(data_start, data_end-data_start);
+    return reply.substr(data_start, data_end-data_start);
+}
 
+static shared_ptr<path::DataNode> netconf_output_to_datanode(const string & data, path::RootSchemaNode & root_schema)
+{
+    path::Codec codec_service{};
     auto datanode = shared_ptr<path::DataNode>(codec_service.decode(root_schema, data, EncodingFormat::XML));
 
     if(!datanode){
@@ -581,6 +604,34 @@ static shared_ptr<path::DataNode> handle_netconf_get_output(const string & reply
         throw(YError{"Problems deserializing output"});
     }
     return datanode;
+}
+
+static string
+extract_rpc_data(const string & reply, const string & start_tag, const string & end_tag)
+{
+    auto data_start = reply.find(start_tag);
+    auto data_end = reply.rfind(end_tag);
+    if (data_start == string::npos || data_end == string::npos) {
+        return reply;
+    }
+    if (start_tag.find("<") == 0 && start_tag.find("<!") != 0) {
+        auto data_start_end = reply.find(">", data_start);
+        data_start = data_start_end + 1;
+    }
+    else {
+        data_start += start_tag.length();
+    }
+    string data = trim( reply.substr(data_start, data_end - data_start) );
+    return data;
+}
+
+static string
+extract_rpc_output(const string & reply)
+{
+    string rpc_output = extract_rpc_data(reply, "<rpc-reply ", "</rpc-reply>");
+    rpc_output = extract_rpc_data(rpc_output, "<data ", "</data>");
+    rpc_output = extract_rpc_data(rpc_output, "<![CDATA[", "]]>");
+    return rpc_output;
 }
 
 shared_ptr<path::DataNode>
@@ -671,9 +722,7 @@ static void check_rpc_reply_for_error(const string& reply)
 
 static void log_rpc_request(const string& payload)
 {
-    YLOG_INFO("=============Generating payload to send to device=============");
-    YLOG_INFO("\n{}", payload);
-    YLOG_INFO("\n");
+    YLOG_INFO("============= Sending RPC to device =============\n{}", payload);
 }
 
 } //namespace path

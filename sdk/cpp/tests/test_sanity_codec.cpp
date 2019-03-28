@@ -541,7 +541,7 @@ TEST_CASE("passive_codec")
     REQUIRE(*r != *r_1); //TODO known failure
 }
 
-TEST_CASE( "test_codec_action_rpc" )
+TEST_CASE( "test_codec_action_node" )
 {
     ydk::path::Repository repo{TEST_HOME};
     ydk::path::NetconfSession session{repo,"127.0.0.1", "admin", "admin",  12022};

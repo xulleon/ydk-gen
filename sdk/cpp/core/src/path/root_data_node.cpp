@@ -56,6 +56,7 @@ ydk::path::RootDataImpl::get_path() const
 void
 ydk::path::RootDataImpl::populate_new_schemas_from_path(const std::string& path)
 {
+    if (path.empty()) return;
     auto csnode = const_cast<SchemaNode*>(&m_schema);
     auto snode = reinterpret_cast<SchemaNodeImpl*>(csnode);
     snode->populate_new_schemas_from_path(path);

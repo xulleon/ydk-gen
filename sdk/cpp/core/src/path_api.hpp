@@ -632,7 +632,7 @@ public:
     ///
     /// @brief create a DataNode corresponding to the path and set its value
     ///
-    /// This methods creates a DataNode tree based on the path passed in. The path
+    /// This method creates DataNode tree based on the path passed in. The path
     /// expression must identify a single node. If the last node created is of schema
     /// type list, leaf-list or anyxml that value is also set in the node.
     /// The returned DataNode is the last node created (the terminal part of the path).
@@ -1081,11 +1081,12 @@ public:
     std::shared_ptr<DataNode> invoke(Rpc& rpc) const;
     std::shared_ptr<DataNode> invoke(DataNode& rpc) const;
     std::vector<std::string> get_capabilities() const;
+    std::string execute_netconf_operation(Rpc& netconf_rpc) const;
 
     // This function is for YDK internal tests only
     std::shared_ptr<path::DataNode> handle_action_rpc_output(const std::string & rpc_reply, path::DataNode& action_dn);
 
-private:
+  private:
     std::vector<std::string> get_yang_1_1_capabilities() const;
     std::shared_ptr<DataNode> handle_crud_edit(
         Rpc& rpc, Annotation ann) const;
@@ -1105,7 +1106,7 @@ private:
                            int timeout);
     void initialize_repo(Repository& repo, bool on_demand);
     std::string execute_payload(const std::string & payload) const;
-private:
+
     std::shared_ptr<NetconfClient> client;
     std::shared_ptr<ModelProvider> model_provider;
     std::shared_ptr<RootSchemaNode> root_schema;
@@ -1181,11 +1182,16 @@ public:
     ///
     /// @brief get the input data tree
     ///
-    ///@return pointer to the input DataNode or nullptr if the rpc does not have
+    /// @return pointer to the input DataNode or nullptr, if the RPC does not have
     /// an input element in the schema.
     ///
     virtual DataNode& get_input_node() const = 0;
 
+    ///
+    /// @brief checks if the RPC has output datanode
+    ///
+    /// @return true or false accordingly
+    ///
     virtual bool has_output_node() const = 0;
 
     ///
@@ -1193,8 +1199,6 @@ public:
     ///
     /// @return pointer to the SchemaNode associated with this rpc.
     virtual SchemaNode& get_schema_node() const = 0;
-
-
 };
 
 }

@@ -48,3 +48,6 @@ class NetconfSession(_NetconfSession):
 
     def get_capabilities(self):
         return super(NetconfSession, self).get_capabilities()
+
+    def execute_netconf_operation(self, rpc):
+        return super(NetconfSession, self).execute_netconf_operation(rpc)

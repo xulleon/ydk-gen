@@ -641,3 +641,18 @@ TEST_CASE("test_embedded_slash_path") {
     string first = R"(<first>ab/c</first>)";
     REQUIRE(xml.find(first) != string::npos);
 }
+
+TEST_CASE( "rpc_get_schema_no_decode" )
+{
+    ydk::path::Repository repo{};
+
+    ydk::path::NetconfSession session{repo,"127.0.0.1", "admin", "admin",  12022};
+    ydk::path::RootSchemaNode& schema = session.get_root_schema();
+
+    auto rpc = schema.create_rpc("ietf-netconf-monitoring:get-schema");
+    rpc->get_input_node().create_datanode("identifier", "ydktest-sanity-action");
+
+    auto reply = session.execute_netconf_operation(*rpc);
+    REQUIRE(!reply.empty());
+    //cout << reply << endl;
+}

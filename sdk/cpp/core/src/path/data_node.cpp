@@ -104,6 +104,8 @@ ydk::path::DataNodeImpl::get_path() const
 void
 ydk::path::DataNodeImpl::populate_new_schemas_from_path(const std::string& path)
 {
+    if (path.empty()) return;
+    YLOG_DEBUG("Populating schema for {}", path);
     check_ly_schema_node_for_path(m_node, path);
     auto snode = reinterpret_cast<SchemaNodeImpl*>(m_node->schema->priv);
     snode->populate_new_schemas_from_path(path);
@@ -138,9 +140,7 @@ ydk::path::DataNodeImpl::create_datanode(const std::string& path, const std::str
         }
     }
 
-    YLOG_DEBUG("Populating schemas for {}", path);
     populate_new_schemas_from_path(path);
-    YLOG_DEBUG("Populating schemas for {}", v);
     populate_new_schemas_from_path(v);
     return create_helper(path, v);
 }

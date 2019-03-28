@@ -308,8 +308,9 @@ ydk::path::Codec::decode_rpc_output(RootSchemaNode & root_schema, const std::str
         YLOG_ERROR( "Parsing failed with message {}", ly_errmsg());
         throw(YCodecError{YCodecError::Error::XML_INVAL});
     }
+    auto dn = perform_decode(rs_impl, root);
     if (rpc) lyd_free(rpc);
-    return perform_decode(rs_impl, root);
+    return dn;
 }
 
 #undef SLASH_CHAR
