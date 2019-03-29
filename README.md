@@ -61,7 +61,8 @@ The output of ydk-gen is either a core package, that defines services and provid
 
 
 # Backward compatibility
- Please see [this page](http://ydk.cisco.com/py/docs/guides/backward_compatibility.html) for details on some backward incompatible changes introduced as part of the 0.6.0 release. Note also that [#604](https://github.com/CiscoDevNet/ydk-gen/issues/604) and [#748](https://github.com/CiscoDevNet/ydk-gen/issues/748) introduced backward incompatibility for Python. The bundles generated with ydk-gen release 0.7.1 or newer will only work with YDK core version 0.7.1 or newer. Also error types for Python were renamed from `YPYError` to `YError`.
+
+Please see [this page](http://ydk.cisco.com/py/docs/guides/backward_compatibility.html) for details on some backward incompatible changes introduced as part of the 0.6.0 release. Note also that [#604](https://github.com/CiscoDevNet/ydk-gen/issues/604) and [#748](https://github.com/CiscoDevNet/ydk-gen/issues/748) introduced backward incompatibility for Python. The bundles generated with ydk-gen release 0.7.1 or newer will only work with YDK core version 0.7.1 or newer. Also error types for Python were renamed from `YPYError` to `YError`.
 
 # Docker
 
@@ -76,22 +77,40 @@ docker run -it ydkdev/ydk-gen
 # System requirements
 Please follow the below instructions to install the system requirements before installing YDK-Py/YDK-Cpp. **Please note** that if you are using the latest ydk-gen master branch code, you may not be able to use the below pre-built `libydk` binaries. You need to [build libydk from source](#second-step-generate-and-install-the-core) after installing the below requirements:
 
-## Linux
-Ubuntu (Debian-based):
+### Linux
+#### Ubuntu (Debian-based):
 
-**Install prebuilt libydk binary:**
+##### Install dependencies
+
 ```
    $ sudo apt-get install gdebi-core python3-dev python-dev libtool-bin
+```
+
+##### Install prebuilt libydk binary
+
+**For Xenial (16.04)**
+
+```
    $ wget https://devhub.cisco.com/artifactory/debian-ydk/0.7.2/libydk_0.7.2-2.amd64.deb
    $ sudo gdebi libydk_0.7.2-1_amd64.deb
 ```
-**To build from source:**
+**For Bionic (18.04)**
+
+```
+   $ wget https://devhub.cisco.com/artifactory/debian-ydk/0.7.2/bionic/libydk_0.7.2-2.amd64.deb
+   $ sudo gdebi libydk_0.7.2-1_amd64.deb
+```
+
+##### To build from source
+
 ```
 $ sudo apt-get install libcurl4-openssl-dev libpcre3-dev libssh-dev libxml2-dev libxslt1-dev libtool-bin cmake python3-dev python-dev
 ```
-Centos (Fedora-based):
 
-**Install prebuilt libydk binary:**
+#### Centos (Fedora-based):
+
+##### Install prebuilt libydk binary
+
 ```
    $ sudo yum install epel-release
    $ sudo yum install libssh-devel gcc-c++
@@ -103,7 +122,9 @@ Centos (Fedora-based):
    $ ln -sf /opt/rh/devtoolset-4/root/usr/bin/gcc /usr/bin/cc
    $ ln -sf /opt/rh/devtoolset-4/root/usr/bin/g++ /usr/bin/c++
 ```
-**To build from source:**
+
+##### To build from source
+
 ```
    $ sudo yum install epel-release
    $ sudo yum install libxml2-devel libxslt-devel libssh-devel libtool gcc-c++ pcre-devel cmake3 clang libcurl-devel rpm-build redhat-lsb
@@ -115,12 +136,13 @@ Centos (Fedora-based):
    $ ln -sf /opt/rh/devtoolset-4/root/usr/bin/g++ /usr/bin/c++
 ```
 
-## macOS
+### MacOS
+
 It is recommended to install [homebrew](http://brew.sh) and Xcode command line tools on your system before installing YDK-Py/YDK-Cpp.
 
 You can download the latest python package from [here](https://www.python.org/downloads/). Please do not use the homebrew version of python as it causes issues with installing ydk packages. Please execute `brew rm python python3` to remove any homebrew python packages.
 
-**Install prebuilt libydk binary:**
+##### Install prebuilt libydk binary
 
 ```
    $ xcode-select --install
@@ -129,16 +151,14 @@ You can download the latest python package from [here](https://www.python.org/do
    $ curl -O https://devhub.cisco.com/artifactory/osx-ydk/0.7.2/libydk-0.7.2-Darwin.pkg
    $ sudo installer -pkg libydk-0.7.2-Darwin.pkg -target /
 ```
-**To build from source:**
+
+##### To build from source
 
 ```
    $ xcode-select --install
    $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
    $ brew install pkg-config libssh xml2 curl pcre cmake
 ```
-
-## Windows
-Currently, ``YDK-Py`` and ``YDK-Cpp`` from release ``0.6.0`` onwards is not supported on Windows.
 
 # Installation
 ## Setting up your environment
