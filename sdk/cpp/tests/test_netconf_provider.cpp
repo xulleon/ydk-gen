@@ -39,7 +39,7 @@ TEST_CASE("CreateNoRepoP")
 }
 
 // NOTE: The ./ ensures this test has to be explicitly run by name
-TEST_CASE("CreateNoRepoPTCP")
+TEST_CASE("./CreateNoRepoPTCP")
 {
     NetconfServiceProvider provider{ "127.0.0.1", "admin", "admin", 12307, "tcp"};
     CHECK_NOTHROW(provider.get_encoding());
