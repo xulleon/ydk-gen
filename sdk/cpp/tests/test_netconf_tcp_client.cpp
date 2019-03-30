@@ -216,7 +216,7 @@ TEST_CASE("tcp_lock_unlock")
     REQUIRE(result == OK);
 }
 
-TEST_CASE("./tcp_rpc_error")
+TEST_CASE("tcp_rpc_error")
 {
     NetconfTCPClient client{"admin", "admin", "127.0.0.1", 12307};
     int OK = 0;
@@ -319,7 +319,7 @@ TEST_CASE("tcp_rpc_invalid")
 }
 
 // TCP Client does not validate any input
-// TEST_CASE("./tcp_wrong_xml")
+// TEST_CASE("tcp_wrong_xml")
 // {
 //     NetconfTCPClient client{"admin", "admin", "127.0.0.1", 12307};
 //     int OK = 0;

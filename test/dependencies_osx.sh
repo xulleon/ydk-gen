@@ -117,7 +117,7 @@ function check_python_installation {
     run_cmd curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
     run_cmd sudo -H python3 get-pip.py
   fi
-  sudo pip3 install virtualenv
+#  sudo pip3 install virtualenv
 }
 
 ########################## EXECUTION STARTS HERE #############################

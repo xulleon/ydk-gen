@@ -80,7 +80,7 @@ function pip_check_install {
         print_msg "Custom pip install of $@ for CentOS"
         ${PIP_BIN} install --install-option="--install-purelib=/usr/lib64/python${PYTHON_VERSION}/site-packages" --no-deps $@ -U
     else
-        ${PIP_BIN} install $@ -U
+        ${PIP_BIN} install --no-deps $@ -U
     fi
 }
 
