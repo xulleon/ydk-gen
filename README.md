@@ -18,7 +18,6 @@ YANG Development Kit (Generator)
 - [System requirements](#system-requirements)
   - [Linux](#linux)
   - [macOS](#macos)
-  - [Windows](#windows)
 - [Installation](#installation)
   - [Setting up your environment](#setting-up-your-environment)
   - [Clone ydk-gen and install the requirements](#clone-ydk-gen-and-install-the-requirements)
@@ -94,6 +93,7 @@ Please follow the below instructions to install the system requirements before i
    $ wget https://devhub.cisco.com/artifactory/debian-ydk/0.7.2/libydk_0.7.2-2.amd64.deb
    $ sudo gdebi libydk_0.7.2-1_amd64.deb
 ```
+
 **For Bionic (18.04)**
 
 ```

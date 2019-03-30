@@ -15,19 +15,48 @@
 # limitations under the License.
 # ------------------------------------------------------------------
 #
+# dependencies_osx.sh
 # Script for running ydk CI on docker via travis-ci.org
 #
 # ------------------------------------------------------------------
 
-RED="\033[0;31m"
-NOCOLOR="\033[0m"
-
 function print_msg {
-    echo -e "${RED}*** $(date) *** dependencies_osx.sh | $1${NOCOLOR}"
+    echo -e "${MSG_COLOR}*** $(date) *** dependencies_osx.sh | $@ ${NOCOLOR}"
+}
+
+function run_cmd {
+    local cmd=$@
+    print_msg "Running: $cmd"
+    $@
+    local status=$?
+    if [ $status -ne 0 ]; then
+        MSG_COLOR=$RED
+        print_msg "Exiting '$@' with status=$status"
+        exit $status
+    fi
+    return $status
+}
+
+function install_libssh {
+    print_msg "Checking installation of libssh"
+    locate libssh_threads.dylib
+    local status=$?
+    if [[ ${status} == 0 ]]; then
+        return
+    fi
+    print_msg "Installing libssh-0.7.6"
+    brew reinstall openssl
+    export OPENSSL_ROOT_DIR=/usr/local/opt/openssl
+    wget https://git.libssh.org/projects/libssh.git/snapshot/libssh-0.7.6.tar.gz
+    tar zxf libssh-0.7.6.tar.gz && rm -f libssh-0.7.6.tar.gz
+    mkdir libssh-0.7.6/build && cd libssh-0.7.6/build
+    cmake ..
+    sudo make install
+    cd -
 }
 
 function install_dependencies {
-    print_msg "install_dependencies"
+    print_msg "Installing dependencies"
 
     brew install curl \
                  doxygen \
@@ -35,17 +64,13 @@ function install_dependencies {
                  pcre \
                  wget \
                  xml2 \
-                 lcov  > /dev/null
+                 pybind11 > /dev/null
     brew install libssh
     brew link libssh
-    brew rm -f --ignore-dependencies python python3
-    wget https://www.python.org/ftp/python/3.6.3/python-3.6.3-macosx10.6.pkg
-    sudo installer -pkg python-3.6.3-macosx10.6.pkg  -target /
-
 }
 
 function install_confd {
-    print_msg "install_confd"
+    print_msg "Installing confd"
 
     wget https://github.com/CiscoDevNet/ydk-gen/files/562559/confd-basic-6.2.darwin.x86_64.zip &> /dev/null
     unzip confd-basic-6.2.darwin.x86_64.zip
@@ -58,11 +83,55 @@ function install_fpm {
     gem install --no-ri --no-rdoc fpm
 }
 
+function install_golang {
+    print_msg "Installing Go1.9.2"
+    bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
+    source /Users/travis/.gvm/scripts/gvm
+    print_msg "GO version before installation: $(go version)"
+    gvm install go1.4 -B
+    gvm use go1.4
+    export GOROOT_BOOTSTRAP=$GOROOT
+    gvm install go1.9.2
+    gvm use go1.9.2
+    print_msg "GOROOT: $GOROOT"
+    print_msg "GOPATH: $GOPATH"
+    print_msg "GO version: $(go version)"
+    print_msg " "
+}
+
+function check_python_installation {
+  print_msg "Checking python libraries location"
+  locate libpython2.7.dylib
+
+  print_msg "Checking python and pip installation"
+  python3 -V
+  status=$?
+  if [ $status -ne 0 ]; then
+    print_msg "Installing python3"
+    brew install python
+  fi
+  pip3 -V
+  status=$?
+  if [ $status -ne 0 ]; then
+    print_msg "Installing pip${PYTHON_VERSION}"
+    run_cmd curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+    run_cmd sudo -H python3 get-pip.py
+  fi
+  sudo pip install virtualenv
+}
+
 ########################## EXECUTION STARTS HERE #############################
 
-install_dependencies
-install_confd
-#install_fpm
+# Terminal colors
+NOCOLOR='\033[0m'
+YELLOW='\033[1;33m'
+MSG_COLOR=$YELLOW
 
-sudo easy_install pip
-sudo pip install virtualenv
+install_dependencies
+install_libssh
+install_confd
+install_golang
+
+check_python_installation
+
+#install_fpm

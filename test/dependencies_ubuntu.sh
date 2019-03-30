@@ -17,13 +17,11 @@
 #
 # Script for running ydk CI on docker via travis-ci.org
 #
+# dependencies_ubuntu (Ubuntu 16.04)
 # ------------------------------------------------------------------
 
-RED="\033[0;31m"
-NOCOLOR="\033[0m"
-
 function print_msg {
-    echo -e "${RED}*** $(date) *** dependencies_linux.sh | $1${NOCOLOR}"
+    echo -e "${MSG_COLOR}*** $(date) *** dependencies_ubuntu.sh | $@ ${NOCOLOR}"
 }
 
 function install_confd {
@@ -36,5 +34,11 @@ function install_confd {
 
 ########################## EXECUTION STARTS HERE #############################
 
+RED="\033[0;31m"
+NOCOLOR="\033[0m"
+YELLOW='\033[1;33m'
+MSG_COLOR=$YELLOW
+
 ./test/dependencies_ubuntu_basic.sh
+
 install_confd

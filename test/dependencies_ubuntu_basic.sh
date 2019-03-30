@@ -19,11 +19,8 @@
 #
 # ------------------------------------------------------------------
 
-RED="\033[0;31m"
-NOCOLOR="\033[0m"
-
 function print_msg {
-    echo -e "${RED}*** $(date) *** dependencies_linux.sh | $1${NOCOLOR}"
+    echo -e "${MSG_COLOR}*** $(date) *** dependencies_ubuntu_basic.sh | $@ ${NOCOLOR}"
 }
 
 function install_dependencies {
@@ -66,15 +63,35 @@ function install_dependencies {
                             cmake \
                             gdebi-core\
                             lcov > /dev/null
+}
 
-    # gcc-5 and g++5 for modern c++
+function check_install_gcc {
+  which gcc
+  local status=$?
+  if [[ $status == 0 ]]
+  then
+    gcc_version=$(echo $(gcc --version) | awk '{ print $3 }' | cut -d '-' -f 1)
+    print_msg "Current gcc/g++ version is $gcc_version"
+  else
+    print_msg "The gcc/g++ not installed"
+    gcc_version="4.0"
+  fi
+  gcc_version=$(echo `gcc --version` | awk '{ print $3 }' | cut -d '-' -f 1)
+  print_msg "Current gcc/g++ version is $gcc_version"
+  if [[ $(echo $gcc_version | cut -d '.' -f 1) < 5 ]]
+  then
+    print_msg "Upgrading gcc/g++ to version 5"
     sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
     sudo apt-get update > /dev/null
     sudo apt-get install gcc-5 g++-5 -y > /dev/null
-    sudo ln -f -s /usr/bin/g++-5 /usr/bin/c++
-    sudo ln -f -s /usr/bin/gcc-5 /usr/bin/cc
+    sudo ln -fs /usr/bin/g++-5 /usr/bin/c++
+    sudo ln -fs /usr/bin/gcc-5 /usr/bin/cc
+    gcc_version=$(echo $(gcc --version) | awk '{ print $3 }' | cut -d '-' -f 1)
+    print_msg "Installed gcc/g++ version is $gcc_version"
+  fi
+}
 
-    # install go1.9.2
+function install_go {
     print_msg "Removing pre-installed Golang"
     sudo apt-get remove golang -y
     print_msg "Installing Golang version 1.9.2"
@@ -84,4 +101,11 @@ function install_dependencies {
 
 ########################## EXECUTION STARTS HERE #############################
 
+RED="\033[0;31m"
+NOCOLOR="\033[0m"
+YELLOW='\033[1;33m'
+MSG_COLOR=$YELLOW
+
 install_dependencies
+check_install_gcc
+install_go
