@@ -20,7 +20,7 @@ $ pkgbuild --root tarball_name --identifier com.cisco.project_name --version pro
 For example, the following was how libydk was packaged for 0.5.4 release: 
 ```
 $ tar -xvf libydk-0.5.4-Darwin.tar.gz
-$ pkgbuild --root libydk-0.5.4-Darwin --identifier com.cisco.libydk --version 0.5.4 --install-location /usr/local libydk_0.5.4_Darwin.pkg
+$ pkgbuild --root libydk-0.5.4-Darwin --identifier com.cisco.libydk --version 0.5.4 --install-location / libydk-0.5.4_Darwin.pkg
 ```
 
 ## CentOS

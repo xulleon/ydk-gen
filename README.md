@@ -90,15 +90,15 @@ Please follow the below instructions to install the system requirements before i
 **For Xenial (16.04)**
 
 ```
-   $ wget https://devhub.cisco.com/artifactory/debian-ydk/0.7.2/libydk_0.7.2-2.amd64.deb
-   $ sudo gdebi libydk_0.7.2-1_amd64.deb
+   $ wget https://devhub.cisco.com/artifactory/debian-ydk/0.7.2/libydk-0.7.2-2.amd64.deb
+   $ sudo gdebi libydk-0.7.2-1_amd64.deb
 ```
 
 **For Bionic (18.04)**
 
 ```
-   $ wget https://devhub.cisco.com/artifactory/debian-ydk/0.7.2/bionic/libydk_0.7.2-2.amd64.deb
-   $ sudo gdebi libydk_0.7.2-1_amd64.deb
+   $ wget https://devhub.cisco.com/artifactory/debian-ydk/0.7.2/bionic/libydk-0.7.2-2.amd64.deb
+   $ sudo gdebi libydk-0.7.2-1_amd64.deb
 ```
 
 ##### To build from source
