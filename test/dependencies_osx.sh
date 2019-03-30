@@ -117,7 +117,7 @@ function check_python_installation {
     run_cmd curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
     run_cmd sudo -H python3 get-pip.py
   fi
-  sudo pip install virtualenv
+  sudo pip3 install virtualenv
 }
 
 ########################## EXECUTION STARTS HERE #############################
@@ -130,7 +130,7 @@ MSG_COLOR=$YELLOW
 install_dependencies
 install_libssh
 install_confd
-install_golang
+#install_golang
 
 check_python_installation
 

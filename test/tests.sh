@@ -169,14 +169,16 @@ function init_py_env {
 
 function init_go_env {
     print_msg "Initializing Go environment"
-
+    cd $YDKGEN_HOME
     if [[ $(uname) == "Darwin" ]]; then
-        source /Users/travis/.gvm/scripts/gvm
-        gvm use go1.9.2
+        #source /Users/travis/.gvm/scripts/gvm
+        #gvm use go1.9.2
+        if [[ $GOPATH. == "." ]]; then
+            export GOPATH="$(pwd)/golang"
+        fi
         print_msg "GOROOT: $GOROOT"
         print_msg "GOPATH: $GOPATH"
    else
-        cd $YDKGEN_HOME
         export GOPATH="$(pwd)/golang"
         export GOROOT=/usr/local/go
         export PATH=$GOROOT/bin:$PATH
@@ -431,11 +433,9 @@ function run_go_sanity_tests {
 function run_python_bundle_tests {
     print_msg "Running python bundle tests"
     py_sanity_ydktest
-    if [[ ${os_type} != "Darwin" ]] ; then
-        py_sanity_deviation
-        py_sanity_common_cache
-    fi
+    py_sanity_deviation
     py_sanity_augmentation
+    py_sanity_common_cache
     py_sanity_one_class_per_module
 }
 
@@ -640,11 +640,9 @@ function py_sanity_deviation_bgp_test {
 function py_sanity_augmentation {
     print_msg "Running py_sanity_augmentation"
 
-    rm -rf $HOME/.ydk/*
     py_sanity_augmentation_gen
     py_sanity_augmentation_install
     py_sanity_augmentation_test
-    rm -rf $HOME/.ydk/*
 }
 
 function py_sanity_augmentation_gen {
@@ -677,7 +675,6 @@ function py_sanity_augmentation_test {
 function py_sanity_common_cache {
     print_msg "Running py_sanity_common_cache"
 
-    rm -rf $HOME/.ydk/*
     init_confd $YDKGEN_HOME/sdk/cpp/core/tests/confd/deviation
     run_test sdk/python/core/tests/test_sanity_deviation.py --common-cache
     init_confd $YDKGEN_HOME/sdk/cpp/core/tests/confd/augmentation
@@ -685,7 +682,6 @@ function py_sanity_common_cache {
 
     run_test sdk/python/core/tests/test_sanity_levels.py --common-cache
     run_test sdk/python/core/tests/test_sanity_types.py --common-cache
-    rm -rf $HOME/.ydk/*
 }
 
 function py_sanity_one_class_per_module_test {

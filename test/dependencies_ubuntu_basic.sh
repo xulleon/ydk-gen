@@ -76,8 +76,6 @@ function check_install_gcc {
     print_msg "The gcc/g++ not installed"
     gcc_version="4.0"
   fi
-  gcc_version=$(echo `gcc --version` | awk '{ print $3 }' | cut -d '-' -f 1)
-  print_msg "Current gcc/g++ version is $gcc_version"
   if [[ $(echo $gcc_version | cut -d '.' -f 1) < 5 ]]
   then
     print_msg "Upgrading gcc/g++ to version 5"
