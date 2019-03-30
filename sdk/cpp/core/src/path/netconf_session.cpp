@@ -607,11 +607,11 @@ static shared_ptr<path::DataNode> netconf_output_to_datanode(const string & data
 }
 
 static string
-extract_rpc_data(const string & reply, const string & start_tag, const string & end_tag)
+extract_rpc_data(const string & reply, const string & start_tag, const string & end_tag, bool first_tag=false)
 {
     auto data_start = reply.find(start_tag);
     auto data_end = reply.rfind(end_tag);
-    if (data_start == string::npos || data_end == string::npos) {
+    if (data_start == string::npos || data_end == string::npos || (first_tag && data_start > 0)) {
         return reply;
     }
     if (start_tag.find("<") == 0 && start_tag.find("<!") != 0) {
@@ -629,8 +629,8 @@ static string
 extract_rpc_output(const string & reply)
 {
     string rpc_output = extract_rpc_data(reply, "<rpc-reply ", "</rpc-reply>");
-    rpc_output = extract_rpc_data(rpc_output, "<data ", "</data>");
-    rpc_output = extract_rpc_data(rpc_output, "<![CDATA[", "]]>");
+    rpc_output = extract_rpc_data(rpc_output, "<data", "</data>", true);
+    rpc_output = extract_rpc_data(rpc_output, "<![CDATA[", "]]>", true);
     return rpc_output;
 }
 

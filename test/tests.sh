@@ -31,7 +31,7 @@ PY_TEST="python3"
 ######################################################################
 
 function print_msg {
-    echo -e "${RED}*** $(date): tests.sh | $1${NOCOLOR}"
+    echo -e "${RED}*** $(date): tests.sh | $@ ${NOCOLOR}"
 }
 
 function run_exec_test {
@@ -54,7 +54,7 @@ function run_test_no_coverage {
 }
 
 function run_test {
-    if [[ $(command -v coverage) && ${os_type} == "Linux" ]]; then
+    if [[ $(command -v coverage) && $run_with_coverage ]]; then
         print_msg "Executing with coverage: $@"
         coverage run --omit=/usr/* --branch --parallel-mode $@ > /dev/null
         local status=$?
@@ -125,7 +125,10 @@ function init_py_env {
         virtualenv macos_pyenv -p python3.6
         source macos_pyenv/bin/activate
     fi
-    ${PIP_BIN} install -r requirements.txt coverage pybind11==2.2.2
+  ${PIP_BIN} install -r requirements.txt pybind11==2.2.2
+  if [[ $run_with_coverage ]] ; then
+    ${PIP_BIN} install coverage
+  fi
 }
 
 function init_go_env {
@@ -168,8 +171,15 @@ function install_cpp_core {
     mkdir -p $YDKGEN_HOME/sdk/cpp/core/build
     cd $YDKGEN_HOME/sdk/cpp/core/build
 
-    print_msg "Compiling with coverage"
-    ${CMAKE_BIN} -DCOVERAGE=True .. && sudo make install
+    if [[ $run_with_coverage ]] ; then
+      print_msg "Compiling with coverage"
+      run_exec_test ${CMAKE_BIN} -DCOVERAGE=True ..
+    else
+      run_exec_test ${CMAKE_BIN} ..
+    fi
+    print_msg "Compiling C++ core library"
+    run_exec_test make &> /dev/null
+    sudo make install
 }
 
 function generate_libydk {
@@ -204,11 +214,11 @@ function install_go_core {
 }
 
 function install_py_core {
-    print_msg "Installing py core"
-    cd $YDKGEN_HOME
     cd $YDKGEN_HOME/sdk/python/core
-    print_msg "Building python with coverage"
-    export YDK_COVERAGE=
+    if [[ $run_with_coverage ]] ; then
+      print_msg "Building Python with coverage"
+      export YDK_COVERAGE=
+    fi
     ${PYTHON_BIN} setup.py sdist
     ${PIP_BIN} install dist/ydk*.tar.gz
 
@@ -236,6 +246,7 @@ function generate_install_specified_cpp_bundle {
 
    run_test generate.py --bundle ${bundle_profile} --cpp --generate-doc &> /dev/null
    cd gen-api/cpp/${bundle_name}/build
+   run_exec_test make &> /dev/null
    run_exec_test sudo make install
    cd -
 }
@@ -260,9 +271,13 @@ function cpp_sanity_ydktest_test {
 
     print_msg "Building and running cpp bundle tests"
     mkdir -p $YDKGEN_HOME/sdk/cpp/tests/build && cd sdk/cpp/tests/build
-    print_msg "Compiling with coverage"
-    run_exec_test ${CMAKE_BIN} -DCOVERAGE=True  ..
-    run_exec_test make
+    if [[ $run_with_coverage ]] ; then
+      print_msg "Compiling with coverage"
+      run_exec_test ${CMAKE_BIN} -DCOVERAGE=True  ..
+    else
+      run_exec_test ${CMAKE_BIN} ..
+    fi
+    run_exec_test make &> /dev/null
     export CTEST_OUTPUT_ON_FAILURE=1
     make test
     local status=$?
@@ -281,9 +296,8 @@ function cpp_test_gen_test {
     mkdir -p gen-api/cpp/models_test-bundle/ydk/models/models_test/test/build
     cd gen-api/cpp/models_test-bundle/ydk/models/models_test/test/build
     run_exec_test ${CMAKE_BIN} ..
-    run_exec_test make
+    run_exec_test make &> /dev/null
     ctest --output-on-failure
-
 }
 
 function cpp_test_gen {
@@ -292,12 +306,14 @@ function cpp_test_gen {
     cd $YDKGEN_HOME
     run_test generate.py --bundle profiles/test/ydk-models-test.json --generate-tests --cpp &> /dev/null
     cd gen-api/cpp/models_test-bundle/build/
+    run_exec_test make &> /dev/null
     run_exec_test sudo make install
 
     # cpp_test_gen_test
 }
 
 function collect_cpp_coverage {
+  if [[ $run_with_coverage ]] ; then
     print_msg "Collecting coverage for C++"
     cd ${YDKGEN_HOME}/sdk/cpp/core/build
     lcov --directory . --capture --output-file coverage.info &> /dev/null # capture coverage info
@@ -305,6 +321,7 @@ function collect_cpp_coverage {
     lcov --list coverage.info #debug info
     print_msg "Moving cpp coverage to ${YDKGEN_HOME}"
     cp coverage.info ${YDKGEN_HOME}
+  fi
 }
 
 ######################################################################
@@ -345,12 +362,16 @@ function run_go_samples {
 }
 
 function run_go_sanity_tests {
-    print_msg "Running go sanity tests"
-    cd $YDKGEN_HOME/sdk/go/core/tests
+  print_msg "Running go sanity tests"
+  cd $YDKGEN_HOME/sdk/go/core/tests
+  if [[ $run_with_coverage ]] ; then
     run_exec_test go test -race -coverpkg="github.com/CiscoDevNet/ydk-go/ydk/providers","github.com/CiscoDevNet/ydk-go/ydk/services","github.com/CiscoDevNet/ydk-go/ydk/types","github.com/CiscoDevNet/ydk-go/ydk/types/datastore","github.com/CiscoDevNet/ydk-go/ydk/types/encoding_format","github.com/CiscoDevNet/ydk-go/ydk/types/protocol","github.com/CiscoDevNet/ydk-go/ydk/types/yfilter","github.com/CiscoDevNet/ydk-go/ydk/types/ytype","github.com/CiscoDevNet/ydk-go/ydk","github.com/CiscoDevNet/ydk-go/ydk/path" -coverprofile=coverage.txt -covermode=atomic
     print_msg "Moving go coverage to ${YDKGEN_HOME}"
     mv coverage.txt ${YDKGEN_HOME}
-    cd -
+  else
+      run_exec_test go test
+  fi
+  cd -
 }
 
 ######################################################################
@@ -360,9 +381,11 @@ function run_go_sanity_tests {
 function run_python_bundle_tests {
     print_msg "Running python bundle tests"
     py_sanity_ydktest
-    py_sanity_deviation
+    if [[ ${os_type} != "Darwin" ]] ; then
+        py_sanity_deviation
+        py_sanity_common_cache
+    fi
     py_sanity_augmentation
-    py_sanity_common_cache
     py_sanity_one_class_per_module
 }
 
@@ -374,8 +397,14 @@ function py_sanity_ydktest {
     print_msg "Generating, installing and testing python ydktest bundle"
 
     py_sanity_ydktest_gen
-    py_sanity_ydktest_test
-    py_sanity_ydktest_install
+    if [[ $run_with_coverage ]]
+    then
+        py_sanity_ydktest_test
+        py_sanity_ydktest_install
+    else
+        py_sanity_ydktest_install
+        run_py_sanity_ydktest_tests
+    fi
 }
 
 function py_sanity_ydktest_gen {
@@ -700,6 +729,10 @@ export YDKGEN_HOME="$(pwd)"
 
 os_type=$(uname)
 print_msg "Running OS type: $os_type"
+if [[ ${os_type} == "Linux" ]] ; then
+    run_with_coverage=1
+fi
+
 print_msg "YDKGEN_HOME is set to: ${YDKGEN_HOME}"
 print_msg "Python location: $(which ${PYTHON_BIN})"
 $(${PYTHON_BIN} -V)
@@ -745,7 +778,7 @@ find . -name '*gcda*'|xargs rm -f
 find . -name '*gcno*'|xargs rm -f
 find . -name '*gcov*'|xargs rm -f
 
-if [[ ${os_type} == "Linux" ]] ; then
+if [[ $run_with_coverage ; then
     print_msg "Combining Python coverage for Linux"
     print_msg "Moving python coverage to ${YDKGEN_HOME}"
     coverage combine > /dev/null || echo "Coverage not combined"
