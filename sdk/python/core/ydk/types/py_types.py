@@ -85,7 +85,10 @@ class Entity(_Entity):
     """
     def __init__(self):
         super(Entity, self).__init__()
-        self.logger = logging.getLogger("ydk.types.EntityCollection")
+        self._is_frozen = False
+        self.parent = None
+        self.ylist_key = None
+        self.logger = logging.getLogger("ydk.types.Entity")
         self._local_refs = {}
         self._children_name_map = OrderedDict()
         self._children_yang_names = set()
@@ -93,7 +96,6 @@ class Entity(_Entity):
         self._leafs = OrderedDict()
         self._segment_path = lambda : ''
         self._absolute_path = lambda : ''
-        self.logger = logging.getLogger("ydk.types.Entity")
 
     def __eq__(self, other):
         if not isinstance(other, Entity):
@@ -179,12 +181,12 @@ class Entity(_Entity):
             if isinstance(value, _YFilter):
                 return True
             if name in self._leafs:
-                leaf = self._leafs[name]
-                if isinstance(leaf, _YLeaf):
+                leaf = _get_leaf_object(self._leafs[name])
+                if _is_yleaf(leaf):
                     if value is not None:
                         if not isinstance(value, Bits) or len(value.get_bitmap()) > 0:
                             return True
-                elif isinstance(leaf, _YLeafList) and len(value) > 0:
+                elif _is_yleaflist(leaf) and len(value) > 0:
                     return True
             if isinstance(value, Entity) and value.has_data():
                 return True
@@ -201,7 +203,7 @@ class Entity(_Entity):
         for name, value in vars(self).items():
             if value is not None:
                 if name in self._leafs:
-                    leaf = self._leafs[name]
+                    leaf = _get_leaf_object(self._leafs[name])
                     isYLeaf = isinstance(leaf, _YLeaf)
                     isYLeafList = isinstance(leaf, _YLeafList)
                     isBits = isinstance(value, Bits)
@@ -224,8 +226,9 @@ class Entity(_Entity):
 
     def set_value(self, path, value, name_space='', name_space_prefix=''):
         for name, leaf in self._leafs.items():
-            if leaf.name == path:
-                if isinstance(leaf, _YLeaf):
+            leaf = _get_leaf_object(leaf)
+            if _leaf_name_matches(leaf, path):
+                if _is_yleaf(leaf):
                     if isinstance(self.__dict__[name], Bits):
                         self.__dict__[name][value] = True
                     else:
@@ -234,11 +237,12 @@ class Entity(_Entity):
                     self.__dict__[name].append(value)
 
     def set_filter(self, path, yfilter):
-        pass
+        if hasattr(self, path):
+            setattr(self, path, yfilter)
 
     def has_leaf_or_child_of_name(self, name):
         for _, leaf in self._leafs.items():
-            if name == leaf.name:
+            if name == _get_leaf_object(leaf).name:
                 return True
 
         if name in self._child_classes:
@@ -250,7 +254,7 @@ class Entity(_Entity):
         leaf_name_data = LeafDataList()
         for name in self._leafs:
             value = self.__dict__[name]
-            leaf = self._leafs[name]
+            leaf = _get_leaf_object(self._leafs[name])
 
             if isinstance(value, _YFilter):
                 self.logger.debug('YFilter assigned to "%s", "%s"' % (name, value))
@@ -285,7 +289,7 @@ class Entity(_Entity):
         if ("[" in path) and hasattr(self, 'ylist_key_names') and len(self.ylist_key_names) > 0:
             path = path.split('[')[0]
             for attr_name in self.ylist_key_names:
-                leaf = self._leafs[attr_name]
+                leaf = _get_leaf_object(self._leafs[attr_name])
                 if leaf is not None:
                     attr_str = format(self.__dict__[attr_name])
                     if "'" in attr_str:
@@ -301,7 +305,12 @@ class Entity(_Entity):
         return self.get_segment_path()
 
     def get_absolute_path(self):
-        return self._absolute_path()
+        path = self._absolute_path()
+        if len(path) == 0 and self.is_top_level_class:
+            path = self.get_segment_path()
+            if '[' in path:
+                path = path.split('[')[0]
+        return path
 
     def _get_child_by_seg_name(self, segs):
         for seg in segs:
@@ -320,10 +329,10 @@ class Entity(_Entity):
                 value = value.name
             if name in leaf_names and name in self.__dict__:
                 # bits ..?
+                leaf = _get_leaf_object(self._leafs[name])
                 prev_value = self.__dict__[name]
                 self.__dict__[name] = value
 
-                leaf = self._leafs[name]
                 if not isinstance(value, _YFilter):
                     if isinstance(leaf, _YLeaf):
                         leaf.set(value)
@@ -362,10 +371,10 @@ class EntityCollection(object):
     Each Entity instance has unique segment path value, which is used as a key in the dictionary.
     """
     def __init__(self, *entities):
+        self.logger = logging.getLogger("ydk.types.EntityCollection")
         self._entity_map = OrderedDict()
         for entity in entities:
             self.append(entity)
-        self.logger = logging.getLogger("ydk.types.EntityCollection")
 
     def __eq__(self, other):
         if not isinstance(other, EntityCollection):
@@ -388,7 +397,7 @@ class EntityCollection(object):
           - list of Entity class instances
         """
         if entities is None:
-            self._log_error_and_raise_exception("Cannot add None object to the EntityCollection", YInvalidArgumentError)
+            self.logger.debug("Cannot add None object to the EntityCollection")
         elif isinstance(entities, Entity):
             key = self._key(entities)
             self._entity_map[key] = entities
@@ -397,6 +406,8 @@ class EntityCollection(object):
                 if isinstance(entity, Entity):
                     key = self._key(entity)
                     self._entity_map[key] = entity
+                elif entity is None:
+                    self.logger.debug("Cannot add None object to the EntityCollection")
                 else:
                     msg = "Argument %s is not supported by EntityCollection class; data ignored"%type(entity)
                     self._log_error_and_raise_exception(msg, YInvalidArgumentError)
@@ -562,6 +573,7 @@ class YList(EntityCollection):
         elif isinstance(entities, Entity):
             key = self._key(entities)
             self._cache_dict[key] = entities
+            entities.ylist_key = key
         else:
             msg = "Argument %s is not supported by YList class; data ignored"%type(entities)
             self._log_error_and_raise_exception(msg, YInvalidArgumentError)
@@ -599,3 +611,21 @@ class YList(EntityCollection):
 
     def __len__(self):
         return self._entity_map.__len__() + self._cache_dict.__len__()
+
+def _get_leaf_object(leaf):
+    # Backward compatibility
+    if isinstance(leaf, tuple):
+        return leaf[0]
+    return leaf
+
+
+def _leaf_name_matches(leaf, path):
+    return leaf.name == path
+
+
+def _is_yleaf(leaf):
+    return isinstance(leaf, _YLeaf)
+
+
+def _is_yleaflist(leaf):
+    return isinstance(leaf, _YLeafList)

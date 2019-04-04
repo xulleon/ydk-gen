@@ -375,3 +375,42 @@ TEST_CASE("get_openconfig_interfaces_and_bgp")
         print_data_node(dn);
     }
 }
+
+namespace ydk
+{
+namespace path
+{
+std::shared_ptr<DataNode> handle_rpc_output(const std::string & reply, RootSchemaNode & root_schema, path::DataNode& input_dn);
+}
+}
+
+TEST_CASE( "decode_transaction_rpc" )
+{
+    path::Repository repo{TEST_HOME};
+    ydk::path::NetconfSession session{repo, "127.0.0.1", "admin", "admin",  12022};
+    ydk::path::RootSchemaNode& schema = session.get_root_schema();
+
+    auto rpc = schema.create_rpc("ydktest-sanity-action:transaction");
+    rpc->get_input_node().create_datanode("run-request/out-format", "xml");
+
+    auto rpc_reply = R"(<?xml version="1.0" encoding="UTF-8"?>
+<rpc-reply xmlns="urn:ietf:params:xml:ns:netconf:base:1.0" message-id="5">
+  <run-result xmlns="http://cisco.com/ns/yang/ydktest-action">
+    <out-result><![CDATA[
+      <device>
+        <name>192.168.123.11</name>
+        <data>router bgp 7922
+ vrf green
+  rd 65010:0
+ exit
+exit
+</data>
+      </device>]]>
+    </out-result>
+  </run-result>
+</rpc-reply>
+)";
+    auto reply_dn = ydk::path::handle_rpc_output(rpc_reply, schema, rpc->get_input_node());
+    REQUIRE(reply_dn != nullptr);
+    print_data_node(reply_dn->get_children()[0]);
+}

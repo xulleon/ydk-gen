@@ -1083,9 +1083,6 @@ public:
     std::vector<std::string> get_capabilities() const;
     std::string execute_netconf_operation(Rpc& netconf_rpc) const;
 
-    // This function is for YDK internal tests only
-    std::shared_ptr<path::DataNode> handle_action_rpc_output(const std::string & rpc_reply, path::DataNode& action_dn);
-
   private:
     std::vector<std::string> get_yang_1_1_capabilities() const;
     std::shared_ptr<DataNode> handle_crud_edit(

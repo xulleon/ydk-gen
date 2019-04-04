@@ -295,7 +295,7 @@ std::shared_ptr<ydk::path::DataNode>
 ydk::path::Codec::decode_rpc_output(RootSchemaNode & root_schema, const std::string& buffer,
             const std::string & rpc_path, EncodingFormat format)
 {
-    YLOG_DEBUG( "Decoding output for RPC '{}'. Output is: {}", rpc_path, buffer);
+    YLOG_DEBUG( "Decoding output for '{}'. Output is:\n{}", rpc_path, buffer);
 
     RootSchemaNodeImpl & rs_impl = get_root_schema_impl(root_schema);
     rs_impl.populate_new_schemas_from_payload(buffer, format);

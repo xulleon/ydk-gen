@@ -541,6 +541,14 @@ TEST_CASE("passive_codec")
     REQUIRE(*r != *r_1); //TODO known failure
 }
 
+namespace ydk
+{
+namespace path
+{
+std::shared_ptr<DataNode> handle_rpc_output(const std::string & reply, RootSchemaNode & root_schema, DataNode& input_dn);
+}
+}
+
 TEST_CASE( "test_codec_action_node" )
 {
     ydk::path::Repository repo{TEST_HOME};
@@ -558,7 +566,7 @@ TEST_CASE( "test_codec_action_node" )
 </rpc-reply>
 )";
 
-    auto reply_dn = session.handle_action_rpc_output(rpc_reply, data);
+    auto reply_dn = ydk::path::handle_rpc_output(rpc_reply, schema, data);
     REQUIRE(reply_dn != nullptr);
 
     ydk::path::Codec s{};

@@ -64,7 +64,7 @@ static string get_read_rpc_name(bool config);
 static bool is_config(path::Rpc & rpc);
 static string get_filter_payload(path::Rpc & ydk_rpc);
 static string get_netconf_payload(path::DataNode & input, const string& data_tag, const string& data_value);
-static shared_ptr<path::DataNode> handle_rpc_output(const string & reply, path::RootSchemaNode & root_schema, path::DataNode & input);
+shared_ptr<path::DataNode> handle_rpc_output(const string & reply, path::RootSchemaNode & root_schema, path::DataNode & input);
 static void check_rpc_reply_for_error(const string& reply);
 static void log_rpc_request(const string& payload);
 
@@ -635,12 +635,6 @@ extract_rpc_output(const string & reply)
 }
 
 shared_ptr<path::DataNode>
-NetconfSession::handle_action_rpc_output(const string & reply, path::DataNode& action_dn)
-{
-	return handle_rpc_output(reply, *root_schema, action_dn);
-}
-
-static shared_ptr<path::DataNode>
 handle_rpc_output(const string & reply, path::RootSchemaNode & root_schema, path::DataNode& input_dn)
 {
 	path::Codec codec_service{};
