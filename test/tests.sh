@@ -45,12 +45,13 @@ function run_exec_test {
 }
 
 function run_test_no_coverage {
-    print_msg "Executing: python $@"
+    cmd="${PYTHON_BIN} $@"
+    print_msg "Executing: $cmd"
     ${PYTHON_BIN} $@
     local status=$?
     if [ $status -ne 0 ]; then
         MSG_COLOR=$RED
-        print_msg "Exiting '${PYTHON_BIN} $@' with status=$status"
+        print_msg "Exiting '$cmd' with status=$status"
         exit $status
     fi
     return $status
@@ -78,9 +79,9 @@ function pip_check_install {
     if [[ $(uname) == "Linux" && ${os_info} == *"fedora"* ]]
     then
         print_msg "Custom pip install of $@ for CentOS"
-        ${PIP_BIN} install --install-option="--install-purelib=/usr/lib64/python${PYTHON_VERSION}/site-packages" --no-deps $@ -U
+        ${PIP_BIN} install --install-option="--install-purelib=/usr/lib64/python${PYTHON_VERSION}/site-packages" --no-deps -U $@
     else
-        ${PIP_BIN} install --no-deps $@ -U
+        ${PIP_BIN} install --no-deps -U $@
     fi
 }
 

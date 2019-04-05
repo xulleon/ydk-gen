@@ -376,12 +376,10 @@ TEST_CASE("get_openconfig_interfaces_and_bgp")
     }
 }
 
-namespace ydk
-{
-namespace path
-{
-std::shared_ptr<DataNode> handle_rpc_output(const std::string & reply, RootSchemaNode & root_schema, path::DataNode& input_dn);
-}
+namespace ydk {
+  namespace path {
+     std::shared_ptr<DataNode> handle_rpc_output(const std::string & reply, RootSchemaNode & root_schema, const string& rpc_path);
+  }
 }
 
 TEST_CASE( "decode_transaction_rpc" )
@@ -410,7 +408,7 @@ exit
   </run-result>
 </rpc-reply>
 )";
-    auto reply_dn = ydk::path::handle_rpc_output(rpc_reply, schema, rpc->get_input_node());
+    auto reply_dn = ydk::path::handle_rpc_output(rpc_reply, schema, rpc->get_input_node().get_path());
     REQUIRE(reply_dn != nullptr);
     print_data_node(reply_dn->get_children()[0]);
 }

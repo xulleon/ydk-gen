@@ -64,9 +64,12 @@ static string get_read_rpc_name(bool config);
 static bool is_config(path::Rpc & rpc);
 static string get_filter_payload(path::Rpc & ydk_rpc);
 static string get_netconf_payload(path::DataNode & input, const string& data_tag, const string& data_value);
-shared_ptr<path::DataNode> handle_rpc_output(const string & reply, path::RootSchemaNode & root_schema, path::DataNode & input);
 static void check_rpc_reply_for_error(const string& reply);
 static void log_rpc_request(const string& payload);
+static string extract_rpc_data(const string & reply, const string & start_tag, const string & end_tag, bool first_tag=false);
+
+shared_ptr<path::DataNode> handle_rpc_output(const string & reply, path::RootSchemaNode & root_schema, const string& rpc_path);
+shared_ptr<path::DataNode> handle_action_output(const string & reply, path::RootSchemaNode & root_schema, const string& action_node_path);
 
 const char* CANDIDATE = "urn:ietf:params:netconf:capability:candidate:1.0";
 const string PROTOCOL_SSH = "ssh";
@@ -289,7 +292,7 @@ shared_ptr<path::DataNode> NetconfSession::handle_netconf_operation(path::Rpc& y
     }
     else if (ydk_rpc.has_output_node())
     {
-        return handle_rpc_output(reply, *root_schema, ydk_rpc.get_input_node());
+        return handle_rpc_output(reply, *root_schema, ydk_rpc.get_input_node().get_path());
     }
     return nullptr;
 }
@@ -331,7 +334,7 @@ shared_ptr<path::DataNode> NetconfSession::invoke(path::DataNode& datanode) cons
     string reply = execute_payload(netconf_payload);
     check_rpc_reply_for_error(reply);
 
-    return handle_rpc_output(reply, *root_schema, datanode);
+    return handle_action_output(reply, *root_schema, datanode.get_action_node_path());
 }
 
 shared_ptr<path::DataNode> NetconfSession::invoke(path::Rpc& rpc) const
@@ -577,21 +580,14 @@ static std::string get_netconf_output(const string & reply)
         return {};
     }
 
-    auto data_start = reply.find("<data>");
-    if(data_start == string::npos)
+    string data = extract_rpc_data(reply, "<data>", "</data>");
+    if (data.length() == reply.length())
     {
-        YLOG_ERROR( "Can't find data tag in reply sent by device {}", reply);
+        YLOG_ERROR( "Could not locate start and/or end 'data' tag in the reply");
         throw(YServiceProviderError{reply});
     }
-    data_start += sizeof("<data>") - 1;
-    auto data_end = reply.rfind("</data>");
-    if(data_end == string::npos)
-    {
-        YLOG_ERROR( "No end data tag found in reply sent by device {}", reply);
-        throw(YError{"No end data tag found"});
-    }
 
-    return reply.substr(data_start, data_end-data_start);
+    return data;
 }
 
 static shared_ptr<path::DataNode> netconf_output_to_datanode(const string & data, path::RootSchemaNode & root_schema)
@@ -607,7 +603,7 @@ static shared_ptr<path::DataNode> netconf_output_to_datanode(const string & data
 }
 
 static string
-extract_rpc_data(const string & reply, const string & start_tag, const string & end_tag, bool first_tag=false)
+extract_rpc_data(const string & reply, const string & start_tag, const string & end_tag, bool first_tag)
 {
     auto data_start = reply.find(start_tag);
     auto data_end = reply.rfind(end_tag);
@@ -635,43 +631,45 @@ extract_rpc_output(const string & reply)
 }
 
 shared_ptr<path::DataNode>
-handle_rpc_output(const string & reply, path::RootSchemaNode & root_schema, path::DataNode& input_dn)
+handle_rpc_output(const string & reply, path::RootSchemaNode & root_schema, const string& rpc_path)
 {
-	path::Codec codec_service{};
+    path::Codec codec_service{};
 
-	string start_tag, end_tag;
-	string data_node_path = input_dn.get_action_node_path();
-	if (data_node_path.empty())
-	{
-	    if(reply.find("<ok/>") != string::npos)
-	        return nullptr;
-
-	    data_node_path = input_dn.get_path();
-	    start_tag = "<rpc-reply ";
-	    end_tag = "</rpc-reply>";
-	}
-	else {
-	    if (reply.find("<data/>") != string::npos)
-	    {
-	        YLOG_INFO( "Found empty data tag");
-	        return nullptr;
-	    }
-
-	    start_tag = "<data>";
-	    end_tag = "</data>";
-	}
-
-    auto data_start = reply.find(start_tag);
-    auto data_end = reply.rfind(end_tag);
-    //need to find the end of the start tag
-    auto data_start_end = reply.find(">", data_start);
-    data_start = data_start_end + 1;
-    string data = trim( reply.substr(data_start, data_end - data_start) );
-
+    string data = extract_rpc_data(reply, "<rpc-reply ", "</rpc-reply>");
+    if (data.length() == reply.length()) {
+        YLOG_INFO( "Could not locate 'rpc-reply' tag in the reply");
+        return nullptr;
+    }
+    if (data.find("<ok/>") != string::npos) {
+        return nullptr;
+    }
     shared_ptr<path::DataNode> datanode = codec_service.decode_rpc_output(
                                                     root_schema,
                                                     data,
-                                                    data_node_path,
+                                                    rpc_path,
+                                                    EncodingFormat::XML);
+    return datanode;
+}
+
+shared_ptr<path::DataNode>
+handle_action_output(const string & reply, path::RootSchemaNode & root_schema, const string& action_node_path)
+{
+    if (reply.find("<data/>") != string::npos) {
+        YLOG_INFO( "Found empty data tag");
+        return nullptr;
+    }
+
+    string data = extract_rpc_data(reply, "<data>", "</data>");
+    if (data.length() == reply.length()) {
+        YLOG_INFO( "Could not locate 'data' tag in the reply");
+        return nullptr;
+    }
+
+    path::Codec codec_service{};
+    shared_ptr<path::DataNode> datanode = codec_service.decode_rpc_output(
+                                                    root_schema,
+                                                    data,
+                                                    action_node_path,
                                                     EncodingFormat::XML);
     return datanode;
 }
