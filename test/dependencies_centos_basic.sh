@@ -57,17 +57,19 @@ function install_dependencies {
     print_msg "Installing dependencies"
 
     yum update -y > /dev/null
-    yum install epel-release -y > /dev/null
-    yum install https://centos7.iuscommunity.org/ius-release.rpm -y > /dev/null
+    yum install epel-release -y
+    yum install https://centos7.iuscommunity.org/ius-release.rpm -y
     yum install git which libxml2-devel libxslt-devel libssh-devel libtool gcc-c++ pcre-devel -y > /dev/null
     yum install cmake3 wget curl-devel unzip make java sudo -y > /dev/null
-    yum install python-devel python-pip python36u-devel python36u-pip  rpm-build redhat-lsb lcov -y > /dev/null
+    yum install rpm-build redhat-lsb lcov -y > /dev/null
+    yum install python-devel python-pip python36-devel python36-pip -y > /dev/null
 }
     
 function check_install_go {
     print_msg "Installing Golang version 1.9.2"
-    sudo wget https://storage.googleapis.com/golang/go1.9.2.linux-amd64.tar.gz &> /dev/null
-    sudo tar -zxf  go1.9.2.linux-amd64.tar.gz -C /usr/local/
+    wget https://storage.googleapis.com/golang/go1.9.2.linux-amd64.tar.gz &> /dev/null
+    tar -zxf  go1.9.2.linux-amd64.tar.gz -C /usr/local/
+    ln -sf /usr/local/go/bin/go /usr/local/bin/go
 }
 
 ########################## EXECUTION STARTS HERE #############################

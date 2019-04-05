@@ -675,8 +675,10 @@ function py_sanity_augmentation_test {
 function py_sanity_common_cache {
     print_msg "Running py_sanity_common_cache"
 
+  if [[ ${os_type} != "Darwin" ]] ; then
     init_confd $YDKGEN_HOME/sdk/cpp/core/tests/confd/deviation
     run_test sdk/python/core/tests/test_sanity_deviation.py --common-cache
+  fi
     init_confd $YDKGEN_HOME/sdk/cpp/core/tests/confd/augmentation
     run_test sdk/python/core/tests/test_sanity_augmentation.py --common-cache
 
