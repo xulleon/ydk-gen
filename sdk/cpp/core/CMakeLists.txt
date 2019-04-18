@@ -8,7 +8,7 @@ set(YDK_DESCRIPTION "YANG Development Kit Library. The library for  YDK API.")
 # CPack Dynamic Settings
 set (CPACK_PACKAGE_NAME "libydk")
 set (CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-set (CPACK_PACKAGE_RELEASE "2")
+set (CPACK_PACKAGE_RELEASE "3")
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "YDK Core Library")
 # set (CPACK_PACKAGE_DESCRIPTION_SUMMARY ${YDK_DESCRIPTION})
 
@@ -359,7 +359,7 @@ set(libnetconf_headers_location ${CMAKE_CURRENT_BINARY_DIR}/project_libnetconf/h
 include(ExternalProject)
 ExternalProject_Add(project_libnetconf
     PREFIX "${CMAKE_CURRENT_BINARY_DIR}/project_libnetconf"
-    URL "https://github.com/abhikeshav/libnetconf/archive/master.zip"
+    URL "https://github.com/ygorelik/libnetconf/archive/master.zip"
     CONFIGURE_COMMAND "./configure"
     BUILD_COMMAND "make"
     INSTALL_DIR "${libnetconf_location}"
