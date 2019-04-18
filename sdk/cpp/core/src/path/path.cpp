@@ -191,18 +191,17 @@ static ydk::path::RootSchemaNodeImpl & get_root_schema_impl(ydk::path::RootSchem
 static std::shared_ptr<ydk::path::DataNode> perform_decode(ydk::path::RootSchemaNodeImpl & rs_impl, struct lyd_node *lnode)
 {
     ydk::YLOG_DEBUG("Performing decode operation");
-    ydk::path::RootDataImpl* rd = new ydk::path::RootDataImpl{rs_impl, rs_impl.m_ctx, "/"};
+    std::shared_ptr<ydk::path::RootDataImpl> rd = std::make_shared<ydk::path::RootDataImpl> (rs_impl, rs_impl.m_ctx, "/");
     rd->m_node = lnode;
 
     struct lyd_node* first_dnode = lyd_first_sibling(lnode);
     struct lyd_node* dnode = first_dnode;
-    do
-    {
-        rd->child_map.insert(std::make_pair(dnode, std::make_shared<ydk::path::DataNodeImpl>(rd, dnode, nullptr)));
+    do {
+        rd->child_map.insert(std::make_pair(dnode, std::make_shared<ydk::path::DataNodeImpl>(rd.get(), dnode, nullptr)));
         dnode = dnode->next;
     } while(dnode && dnode != first_dnode);
 
-    return std::shared_ptr<ydk::path::DataNode>(rd);
+    return rd;
 }
 
 static struct lyd_node* create_lyd_node_for_rpc(ydk::path::RootSchemaNodeImpl & rs_impl, const std::string & rpc_path)

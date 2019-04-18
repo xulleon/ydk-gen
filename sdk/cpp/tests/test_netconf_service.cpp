@@ -19,16 +19,16 @@
 
 #include <ydk/netconf_provider.hpp>
 #include <ydk/netconf_service.hpp>
-#include <ydk_ydktest/ydktest_sanity.hpp>
-#include <ydk_ydktest/openconfig_bgp.hpp>
-#include <ydk_ydktest/openconfig_interfaces.hpp>
 #include <ydk/types.hpp>
 #include <ydk/common_utilities.hpp>
 
-#include <spdlog/spdlog.h>
-
 #include "config.hpp"
 #include "catch.hpp"
+
+#include <ydk_ydktest/ydktest_sanity.hpp>
+#include <ydk_ydktest/openconfig_bgp.hpp>
+#include <ydk_ydktest/openconfig_interfaces.hpp>
+#include <ydk_ydktest/iana_if_type.hpp>
 
 using namespace ydk;
 using namespace ydktest;
@@ -98,7 +98,6 @@ TEST_CASE("delete_config")
 
     DataStore target = DataStore::url;
 
-//    auto reply = ns.delete_config(session, target, "http://test");
     CHECK_THROWS_AS(ns.delete_config(provider, target, "http://test"), YError);
 }
 
@@ -122,6 +121,23 @@ TEST_CASE("get_edit_copy_config")
 
     DataStore target = DataStore::candidate;
     DataStore source = DataStore::running;
+
+    // Buils some configuration
+    auto bgp = openconfig_bgp::Bgp();
+    bgp.global->config->as = 6500;
+    bgp.global->config->router_id = "10.20.30.40";
+    auto ifcs = openconfig_interfaces::Interfaces();
+    auto ifc  = make_shared<openconfig_interfaces::Interfaces::Interface>();
+    ifc->name = "Loopback10";
+    ifc->config->name = "Loopback10";
+    ifc->config->description = "Test Loopback10 config";
+    ifcs.interface.append(ifc);
+
+    vector<ydk::Entity*> config_list;
+    config_list.push_back(&bgp);
+    config_list.push_back(&ifcs);
+    if (ns.edit_config(provider, target, config_list))
+        ns.commit(provider);
 
     // Build filter
     openconfig_interfaces::Interfaces interfaces_filter{};

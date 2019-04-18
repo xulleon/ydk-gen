@@ -307,7 +307,6 @@ std::string NetconfSession::execute_netconf_operation(path::Rpc& ydk_rpc) const
     log_rpc_request(netconf_payload);
 
     string reply = execute_payload(netconf_payload);
-
     check_rpc_reply_for_error(reply);
 
     if (is_netconf_get_rpc(ydk_rpc))
@@ -376,7 +375,6 @@ string NetconfSession::execute_payload(const string & payload) const
 vector<string> NetconfSession::get_yang_1_1_capabilities() const
 {
     IetfCapabilitiesXmlParser parser{};
-    IetfCapabilitiesParser capabilities_parser{};
     string payload = get_caps_rpc_payload();
 
     YLOG_INFO("============= Requesting YANG 1.1 capabilities ===========");

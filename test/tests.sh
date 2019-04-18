@@ -255,8 +255,8 @@ function install_go_core {
     print_msg "Installing Go YDK core"
     cd $YDKGEN_HOME
 
-    mkdir -p $YDKGEN_HOME/golang/src/github.com/CiscoDevNet/ydk-go/ydk
-    cp -r sdk/go/core/ydk/* $YDKGEN_HOME/golang/src/github.com/CiscoDevNet/ydk-go/ydk/
+    mkdir -p $GOPATH/src/github.com/CiscoDevNet/ydk-go/ydk
+    cp -r sdk/go/core/ydk/* $GOPATH/src/github.com/CiscoDevNet/ydk-go/ydk/
 }
 
 function install_py_core {
@@ -386,7 +386,7 @@ function run_go_bundle_tests {
     # TODO: go get
     cd $YDKGEN_HOME
     run_test  generate.py --bundle profiles/test/ydktest-cpp.json --go
-    cp -r gen-api/go/ydktest-bundle/ydk/* $YDKGEN_HOME/golang/src/github.com/CiscoDevNet/ydk-go/ydk/
+    cp -r gen-api/go/ydktest-bundle/ydk/* $GOPATH/src/github.com/CiscoDevNet/ydk-go/ydk/
 
     run_go_tests
 }
