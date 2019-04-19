@@ -503,8 +503,13 @@ function py_sanity_ydktest_test {
 
     run_py_sanity_ydktest_tests
 
-    export PYTHONPATH=$OLDPYTHONPATH
-    print_msg "Restored PYTHONPATH to $PYTHONPATH"
+    if [[ $(uname) == "Linux" && ${os_info} == *"fedora"* ]]; then
+        unset PYTHONPATH
+        print_msg "Unsetting PYTHONPATH"
+    else
+        export PYTHONPATH=$OLDPYTHONPATH
+        print_msg "Restored PYTHONPATH to $PYTHONPATH"
+    fi
 
     cd sdk/python/core/
     rm -f *.so
